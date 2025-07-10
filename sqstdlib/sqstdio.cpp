@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <squirrel.h>
 #include <sqstdio.h>
+#include <string.h>
 #include "sqstdstream.h"
 
 #define SQSTD_FILE_TYPE_TAG ((SQUnsignedInteger)(SQSTD_STREAM_TYPE_TAG | 0x00000001))
@@ -462,6 +463,26 @@ SQInteger _g_io_dofile(HSQUIRRELVM v)
     return SQ_ERROR; //propagates the error
 }
 
+SQInteger sqstd_scanline(HSQUIRRELVM v) {
+    const SQChar *label;
+
+    if (sq_gettop(v) == 2) {
+        sq_getstring(v, -1, &label);
+        printf("%s", label);
+    }
+
+    else if (sq_gettop(v) > 2) {
+        return sq_throwerror(v, "Too many args.");
+    }
+
+    char input[256];
+    fgets(input, 256, stdin);
+    input[strcspn(input, "\n")] = '\0';
+
+    sq_pushstring(v, input, -1);
+    return 1;
+}
+
 #define _DECL_GLOBALIO_FUNC(name,nparams,typecheck) {_SC(#name),_g_io_##name,nparams,typecheck}
 static const SQRegFunction iolib_funcs[]={
     _DECL_GLOBALIO_FUNC(loadfile,-2,_SC(".sb")),
@@ -484,6 +505,11 @@ SQRESULT sqstd_register_iolib(HSQUIRRELVM v)
     sq_pushstring(v,_SC("stderr"),-1);
     sqstd_createfile(v,stderr,SQFalse);
     sq_newslot(v,-3,SQFalse);
+
+    sq_pushstring(v, _SC("scanline"), -3);
+    sq_newclosure(v, sqstd_scanline, 0);
+    sq_newslot(v, -3, 0);
+
     sq_settop(v,top);
     return SQ_OK;
 }
